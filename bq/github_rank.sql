@@ -4,10 +4,8 @@
 
 
 
-
---事件类型为PushEvent的payload含有email
 --中国高校2018年push数量100强
---北大，上交，中科大位列前三甲，盛产工程师的北邮，华科也在前10之列
+--事件类型为PushEvent的payload含有email
 --全球教育机构只要将过滤条件改为.edu即可
 
 SELECT REGEXP_EXTRACT(email, r'@(.*)') AS domain, COUNT(*) AS counts
@@ -20,7 +18,7 @@ FROM (
 )
 GROUP BY domain
 ORDER BY counts DESC
-LIMIT 100;
+LIMIT 10;
 
 
 --查看具有国家信息的用户占比
@@ -33,7 +31,6 @@ FROM [ghtorrent-bq:ght_2018_04_01.users]
 --ghtorrent-bq数据集users表记录了注册者的国家信息，有的用户没有
 --由于users只更新到2018/04/01，联合users表和githubarchive:year.2017表
 --Github 各个国家push数量，用户数量排名
---美国，中国，印度位列2018年以前用户数量前三甲
 
 SELECT country_code, COUNT(*) AS pushes,COUNT(DISTINCT login) as user,INTEGER(COUNT(*)/COUNT(DISTINCT login))
 FROM [githubarchive:year.2017] a
@@ -46,10 +43,6 @@ ORDER BY pushes DESC
 
 
 --公司贡献排名 by 2018.01
---微软近年来在开源社区发力，贡献很多
---Red Hat 以及google德国排名靠前
---中国的百度，腾讯，阿里排名分别为53，59，71
---排名第一是Lombiq Technologies Ltd.
 
 SELECT company , COUNT(*) AS pushes
 FROM [githubarchive:year.2017] a
@@ -63,8 +56,7 @@ LIMIT 100
 
 
 --2019年以来被fork次数最多的项目，一定程度上代表了该项目的流行程度
---996.ICU赫然在列，我们中国的程序员应该很熟悉
---当然还有tensorflow，opencv这种这几年比较流行的项目
+
 SELECT table2019.repo.name AS repo_name,COUNT(DISTINCT table2019.actor.id) AS fork_counts
 FROM 
   (
@@ -75,7 +67,6 @@ FROM
 GROUP BY repo_name
 ORDER BY fork_counts DESC
 LIMIT 20
-
 
 
 --哪个项目被提交的次数最多
@@ -113,4 +104,34 @@ FROM [bigquery-public-data:github_repos.commits]
 WHERE committer.date.seconds >= 1546272000
 GROUP BY author.name
 ORDER BY commits DESC
+
+
+--2019 star数TOP10
+
+SELECT table2019.repo.name AS repo_name,COUNT(DISTINCT table2019.actor.id) AS watch_counts
+FROM 
+  (
+  SELECT *
+  FROM TABLE_QUERY([githubarchive:month],'table_id CONTAINS "2019"')
+  ) AS table2019
+  WHERE table2019.type = 'WatchEvent' AND JSON_EXTRACT_SCALAR(table2019.payload, '$.action') = 'started'
+GROUP BY repo_name
+ORDER BY watch_counts DESC
+LIMIT 10
+
+
+--996ICU 2019/03 issue 增长,北京属于东八区+8
+
+SELECT DATE(DATE_ADD(created_at, 8, "HOUR")) AS a_day,COUNT(*) as counts
+FROM TABLE_QUERY([githubarchive:month],'table_id CONTAINS "2019"')
+WHERE type = 'IssuesEvent' AND repo.name = '996icu/996.ICU' AND JSON_EXTRACT_SCALAR(payload, '$.action') = 'opened'
+GROUP BY a_day
+ORDER BY a_day
+
+
+--中国程序员的数量
+
+SELECT *
+FROM [ghtorrent-bq:ght_2018_04_01.users] 
+WHERE country_code = 'cn'
 
