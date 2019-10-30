@@ -120,15 +120,6 @@ ORDER BY watch_counts DESC
 LIMIT 10
 
 
---996ICU 2019/03 issue 增长,北京属于东八区+8
-
-SELECT DATE(DATE_ADD(created_at, 8, "HOUR")) AS a_day,COUNT(*) as counts
-FROM TABLE_QUERY([githubarchive:month],'table_id CONTAINS "2019"')
-WHERE type = 'IssuesEvent' AND repo.name = '996icu/996.ICU' AND JSON_EXTRACT_SCALAR(payload, '$.action') = 'opened'
-GROUP BY a_day
-ORDER BY a_day
-
-
 --中国程序员的数量
 
 SELECT *
